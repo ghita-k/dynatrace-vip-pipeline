@@ -1,0 +1,64 @@
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  tf_version: '1.7.5'
+  tf_working_dir: '$(System.DefaultWorkingDirectory)'
+
+stages:
+  - stage: Init
+    displayName: "Terraform Init"
+    jobs:
+      - job: Init
+        steps:
+          - task: Bash@3
+            displayName: "Installer Terraform manuellement"
+            inputs:
+              targetType: 'inline'
+              script: |
+                sudo wget https://releases.hashicorp.com/terraform/${{ variables.tf_version }}/terraform_${{ variables.tf_version }}_linux_amd64.zip
+                sudo unzip terraform_${{ variables.tf_version }}_linux_amd64.zip
+                sudo mv terraform /usr/local/bin/
+                terraform -version
+
+          - task: Bash@3
+            displayName: "Initialiser Terraform"
+            inputs:
+              targetType: 'inline'
+              workingDirectory: '$(tf_working_dir)'
+              script: |
+                terraform init
+
+  - stage: Plan
+    displayName: "Terraform Plan"
+    dependsOn: Init
+    jobs:
+      - job: Plan
+        displayName: "Générer un plan"
+        steps:
+          - task: Bash@3
+            displayName: "Terraform Plan"
+            inputs:
+              targetType: 'inline'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/.vscode'
+              script: |
+                terraform plan 
+
+
+  - stage: Apply
+    displayName: "Terraform Apply"
+    dependsOn: Plan
+    condition: succeeded()
+    jobs:
+      - job: Apply
+        steps:
+          - task: Bash@3
+            displayName: "Appliquer le plan Terraform"
+            inputs:
+              targetType: 'inline'
+              workingDirectory: '$(tf_working_dir)'
+              script: |
+                terraform apply 
