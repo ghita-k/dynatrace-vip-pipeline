@@ -13,14 +13,12 @@ steps:
   # Étape 1 : Checkout du repo
   - checkout: self
 
-  # Étape 2 : Afficher le répertoire de travail et lister tous les fichiers
+  # Étape 2 : Afficher la structure complète du répertoire cloné
   - script: |
       echo "Répertoire de travail: $(System.DefaultWorkingDirectory)"
-      echo "=== Listing complet ==="
+      echo "=== Listing complet récursif ==="
       ls -laR "$(System.DefaultWorkingDirectory)"
-      echo "=== Recherche des fichiers .tf à la racine ==="
-      find "$(System.DefaultWorkingDirectory)" -maxdepth 1 -type f -name "*.tf" -ls
-    displayName: "Lister les fichiers du répertoire cloné"
+    displayName: "Lister tous les fichiers du repo"
 
   # Étape 3 : Installer Terraform
   - script: |
@@ -30,7 +28,7 @@ steps:
       terraform -version
     displayName: "Installer Terraform"
 
-  # Étape 4 : Initialiser Terraform et générer le plan
+  # Étape 4 : Exécuter Terraform init & plan
   - script: |
       terraform init
       terraform plan -out=tfplan
