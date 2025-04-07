@@ -2,64 +2,33 @@
 # Start with a minimal pipeline that you can customize to build and deploy your code.
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
-trigger:
+
+ trigger:
   - main
 
 pool:
   vmImage: ubuntu-latest
 
-variables:
-  tf_version: '1.7.5'
-  tf_working_dir: '$(System.DefaultWorkingDirectory)'
+steps:
+  # Assure-toi que le dépôt est bien cloné
+  - checkout: self
 
-stages:
-  - stage: Init
-    displayName: "Terraform Init"
-    jobs:
-      - job: Init
-        steps:
-          - task: Bash@3
-            displayName: "Installer Terraform manuellement"
-            inputs:
-              targetType: 'inline'
-              script: |
-                sudo wget https://releases.hashicorp.com/terraform/${{ variables.tf_version }}/terraform_${{ variables.tf_version }}_linux_amd64.zip
-                sudo unzip terraform_${{ variables.tf_version }}_linux_amd64.zip
-                sudo mv terraform /usr/local/bin/
-                terraform -version
+  # Étape de débogage : liste récursive de tous les fichiers dans le répertoire cloné
+  - script: |
+      echo "=== Contenu complet du répertoire de travail ($(System.DefaultWorkingDirectory)) ==="
+      ls -laR "$(System.DefaultWorkingDirectory)"
+    displayName: "Lister tous les fichiers"
 
-          - task: Bash@3
-            displayName: "Initialiser Terraform"
-            inputs:
-              targetType: 'inline'
-              workingDirectory: '$(tf_working_dir)'
-              script: |
-                terraform init
-  - stage: Plan
-    displayName: "Terraform Plan"
-    dependsOn: Init
-    jobs:
-      - job: Plan
-        steps:
-          - task: Bash@3
-            displayName: "Terraform Plan"
-            inputs:
-              targetType: 'inline'
-              workingDirectory: '$(tf_working_dir)'
-              script: |
-                terraform plan 
+  # Installer Terraform
+  - script: |
+      wget https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
+      unzip terraform_1.7.5_linux_amd64.zip
+      sudo mv terraform /usr/local/bin/
+      terraform -version
+    displayName: "Installer Terraform"
 
-  - stage: Apply
-    displayName: "Terraform Apply"
-    dependsOn: Plan
-    condition: succeeded()
-    jobs:
-      - job: Apply
-        steps:
-          - task: Bash@3
-            displayName: "Terraform Apply"
-            inputs:
-              targetType: 'inline'
-              workingDirectory: '$(tf_working_dir)'
-              script: |
-                terraform apply 
+  # Initialiser Terraform et générer le plan
+  - script: |
+      terraform init
+      terraform plan -out=tfplan
+    displayName: "Terraform Init & Plan"
