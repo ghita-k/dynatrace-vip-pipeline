@@ -3,23 +3,26 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
- trigger:
+trigger:
   - main
 
 pool:
   vmImage: ubuntu-latest
 
 steps:
-  # Assure-toi que le dépôt est bien cloné
+  # Étape 1 : Checkout du repo
   - checkout: self
 
-  # Étape de débogage : liste récursive de tous les fichiers dans le répertoire cloné
+  # Étape 2 : Afficher le répertoire de travail et lister tous les fichiers
   - script: |
-      echo "=== Contenu complet du répertoire de travail ($(System.DefaultWorkingDirectory)) ==="
+      echo "Répertoire de travail: $(System.DefaultWorkingDirectory)"
+      echo "=== Listing complet ==="
       ls -laR "$(System.DefaultWorkingDirectory)"
-    displayName: "Lister tous les fichiers"
+      echo "=== Recherche des fichiers .tf à la racine ==="
+      find "$(System.DefaultWorkingDirectory)" -maxdepth 1 -type f -name "*.tf" -ls
+    displayName: "Lister les fichiers du répertoire cloné"
 
-  # Installer Terraform
+  # Étape 3 : Installer Terraform
   - script: |
       wget https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
       unzip terraform_1.7.5_linux_amd64.zip
@@ -27,8 +30,9 @@ steps:
       terraform -version
     displayName: "Installer Terraform"
 
-  # Initialiser Terraform et générer le plan
+  # Étape 4 : Initialiser Terraform et générer le plan
   - script: |
       terraform init
       terraform plan -out=tfplan
     displayName: "Terraform Init & Plan"
+    workingDirectory: "$(System.DefaultWorkingDirectory)"
